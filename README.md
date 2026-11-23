@@ -1,175 +1,74 @@
 # OsdagBridge
 
-OsdagBridge is a modular, shared-core software plugin for the analysis and design of steel bridges within the Osdag ecosystem.  
-It supports desktop (PySide6), web (Django + React), and CLI interfaces through a unified Python core.
+Open-source software for the design of **composite steel plate-girder highway bridges** (Indian codes: IRC 5, 6, 22, 24, 112, SP 114 and IS 800). Part of the [Osdag](https://osdag.fossee.in/) project — FOSSEE, IIT Bombay.
 
-The system currently supports:
-- Plate Girder Bridges  
- 
+> Status: development version (`dev` branch). Some modules are incomplete — see [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
 
-Additional bridge types can be added through the plugin architecture.
+## What it does
 
----
+Given basic bridge inputs, OsdagBridge:
 
-## Key Features
+1. Builds a 3D grillage model (OSPGrillage) of a simply supported I-girder bridge.
+2. Applies IRC 6 dead, SIDL, live (Class A, 70R, AA, SV, Fatigue), wind, seismic and temperature loads and auto-generates ULS/SLS combinations.
+3. Designs / checks:
+   - Plate girders (moment, shear, interaction, LTB, stiffeners, deflection, stress, fatigue)
+   - Shear connectors (capacity, spacing, transverse shear)
+   - RCC deck slab (flexure, cantilever overhang, punching, one-way shear, crack width, detailing)
+   - Cross bracing and end diaphragms
+4. Generates CAD views (pythonOCC) and a LaTeX **Design Report** with bill of materials.
 
-### Shared Core Architecture
-All numerical logic and I/O are implemented once in `osdagbridge.core`.  
-The desktop GUI, web app, and CLI all reuse the same core for consistent behavior.
+## Inputs
 
-### Modular Bridge-Type System
-Each bridge type includes:
-- DTO (input model schema)
-- Initial sizing routines
-- Structural analysis configuration
-- Design and code-check modules
-- CAD geometry generation
-- Report generation utilities
+| Group | Examples |
+|---|---|
+| Location | Place / lat-long → seismic zone, basic wind speed, shade temperatures |
+| Geometry | Span, carriageway width, median, footpath, skew angle |
+| Materials | Girder / bracing steel grade (IS 2062), deck concrete grade |
+| Additional | No. of girders, spacing, overhang, deck thickness, barrier, railing, wearing course, girder section, stiffeners, bracing, studs, safety factors |
 
-### Reusable Bridge Components
-Common structural elements are defined in `bridge_components/`:
-- Girders  
-- Decks  
-- Crash barriers  
-- Pedestals  
-- Piers  
-- Foundations  
-- Piles and pile caps  
+Values not entered by the user are filled with IRC/IS defaults and marked with `*` in the report.
 
-Components are shared across multiple bridge types.
+## Outputs
 
-### Multi-Solver Analysis Support
-Multiple analysis backends are supported:
-- Native lightweight FEM solver  
-- OpenSeesPy  
-- OspGrillage  
-
-Solvers are switchable at runtime via adapters.
-
-### Integrated Indian Standards
-Included under `core/utils/codes/`:
-- IRC:6–2017  
-- IRC:22–2015  
-- IRC:24–2010  
-
-These modules provide load models, combinations, material factors, and code checks.
-
----
-
-## Project Structure
-
-```
-OsdagBridge/
-├── docs/
-├── examples/
-├── tests/
-└── src/
-    └── osdagbridge/
-        ├── core/              # Analysis, design, IO, solvers, codes
-        ├── bridge_types/      # Plate girder, box girder, truss
-        ├── bridge_components/ # Reusable components
-        ├── cli/               # Command-line interface
-        ├── desktop/           # PySide6 GUI
-        └── web/               # Django + React web stack
-```
-
----
+- Design Report (`.tex` → PDF): executive summary, inputs, loads, analysis, design checks, drawings, material take-off, assumptions.
+- Utilization ratio (UR = demand / capacity) for every check; UR ≤ 1.0 is a pass.
 
 ## Installation
 
-Clone the repository:
-
+<!-- TODO: replace with the repo's real commands -->
 ```bash
-git clone https://github.com/osdag-admin/OsdagBridge.git
+git clone https://github.com/manisha-1234567/OsdagBridge.git
 cd OsdagBridge
+git checkout dev
+# TODO: environment setup (Python version, conda/pip requirements)
+# TODO: launch command
 ```
 
-Install in editable mode:
+Requirements for the PDF report: a LaTeX distribution (pdfLaTeX) with `longtable`, `fancyhdr`, `titlesec`, `titletoc`, `etoolbox`, `needspace`, `makecell`, `lastpage` (LaTeX 2020+ for `\AddToHook`).
 
-```bash
-pip install -e .
-```
+## Quick start
 
----
+1. Launch OsdagBridge.
+2. Enter project location, span, carriageway width and materials.
+3. Review / edit additional inputs.
+4. Run design; open the Design Report.
 
-## Usage
+## Documentation
 
-### Command-Line Interface
+| File | Purpose |
+|---|---|
+| [TESTING_METHODOLOGY.md](TESTING_METHODOLOGY.md) | How the software was tested |
+| [TEST_RESULTS.md](TEST_RESULTS.md) | Results of test case TC-01 and defects found |
+| [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) | Scope limits and known issues |
 
-Run an analysis:
+## Design standards
 
-```bash
-osdagbridge analyze project.yaml --solver native
-```
+IRC 5, IRC 6:2017, IRC 22, IRC 24:2010, IRC 112, IRC SP 114:2018, IS 800:2007, IS 2062, IS 456, IS 1786, IS 1893 (Part 3).
 
-Generate a report:
+## Contributing
 
-```bash
-osdagbridge report project.yaml report.pdf
-```
+Report bugs via GitHub Issues with: input values, expected vs actual output, screenshot / report page, and software version.
 
-### Desktop Application
+## License / credits
 
-```bash
-python -m osdagbridge.desktop
-```
-
-### Web Application
-
-Backend:
-
-```bash
-python src/osdagbridge/web/backend/manage.py runserver
-```
-
-Frontend:
-
-```bash
-cd src/osdagbridge/web/frontend
-npm install
-npm start
-```
-
----
-
-## Testing
-
-Run the complete test suite:
-
-```bash
-pytest -q
-```
-
-Continuous integration runs automatically through GitHub Actions (`.github/workflows/ci.yml`).
-
----
-
-## Development Guidelines
-
-### Key Code Locations
-- Core logic: `src/osdagbridge/core/`
-- Codes & standards: `src/osdagbridge/core/utils/codes/`
-- Bridge types: `src/osdagbridge/bridge_types/`
-- Components: `src/osdagbridge/bridge_components/`
-- CLI: `src/osdagbridge/cli/`
-- Desktop GUI: `src/osdagbridge/desktop/`
-- Web backend/frontend: `src/osdagbridge/web/`
-
-### Contribution Workflow
-1. Fork the repository  
-2. Create a feature branch  
-3. Ensure all tests pass (`pytest`)  
-4. Submit a pull request
-
----
-
-## Acknowledgements
-
-OsdagBridge is part of the Osdag project, promoting open-source tools for steel design education, research, and practice.
-
----
-
-## License
-
-This project is licensed under the MIT License.  
-See the `LICENSE` file for full details.
+Osdag · FOSSEE · Indian Institute of Technology Bombay. <!-- TODO: add licence name as in repo -->
